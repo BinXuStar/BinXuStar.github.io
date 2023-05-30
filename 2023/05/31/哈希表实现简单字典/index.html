@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.1.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/octocat3232.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/octocat1616.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="哈希表哈希表的概念散列表也叫哈希表（Hash table），是根据关键字（key）而直接访问在内存存储位置的数据结构。 在很多高级语言中都有哈希表的身影，比如在Python中，有一种数据结构叫做dict，中文翻译是字典，应该是基于哈希表实现的。下面以生活中查电话号码作为一个通俗的例子，讲解什么是哈希表。 一个例子理解哈希表可以把哈希表想象成一本按照人名首字母顺序排列电话簿，当我们要查找张三的电话号">
+<meta property="og:type" content="article">
+<meta property="og:title" content="哈希表实现简单字典">
+<meta property="og:url" content="http://example.com/2023/05/31/%E5%93%88%E5%B8%8C%E8%A1%A8%E5%AE%9E%E7%8E%B0%E7%AE%80%E5%8D%95%E5%AD%97%E5%85%B8/index.html">
+<meta property="og:site_name" content="codecat blog">
+<meta property="og:description" content="哈希表哈希表的概念散列表也叫哈希表（Hash table），是根据关键字（key）而直接访问在内存存储位置的数据结构。 在很多高级语言中都有哈希表的身影，比如在Python中，有一种数据结构叫做dict，中文翻译是字典，应该是基于哈希表实现的。下面以生活中查电话号码作为一个通俗的例子，讲解什么是哈希表。 一个例子理解哈希表可以把哈希表想象成一本按照人名首字母顺序排列电话簿，当我们要查找张三的电话号">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/2023/05/31/%E5%93%88%E5%B8%8C%E8%A1%A8%E5%AE%9E%E7%8E%B0%E7%AE%80%E5%8D%95%E5%AD%97%E5%85%B8/hash_table.png">
+<meta property="og:image" content="http://example.com/2023/05/31/%E5%93%88%E5%B8%8C%E8%A1%A8%E5%AE%9E%E7%8E%B0%E7%AE%80%E5%8D%95%E5%AD%97%E5%85%B8/dict_add.png">
+<meta property="article:published_time" content="2023-05-30T16:30:38.000Z">
+<meta property="article:modified_time" content="2023-05-30T16:51:13.912Z">
+<meta property="article:author" content="codecat">
+<meta property="article:tag" content="数据结构，hash,dict">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2023/05/31/%E5%93%88%E5%B8%8C%E8%A1%A8%E5%AE%9E%E7%8E%B0%E7%AE%80%E5%8D%95%E5%AD%97%E5%85%B8/hash_table.png">
+
+<link rel="canonical" href="http://example.com/2023/05/31/%E5%93%88%E5%B8%8C%E8%A1%A8%E5%AE%9E%E7%8E%B0%E7%AE%80%E5%8D%95%E5%AD%97%E5%85%B8/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>哈希表实现简单字典 | codecat blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="codecat blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">codecat blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2023/05/31/%E5%93%88%E5%B8%8C%E8%A1%A8%E5%AE%9E%E7%8E%B0%E7%AE%80%E5%8D%95%E5%AD%97%E5%85%B8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="codecat">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="codecat blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          哈希表实现简单字典
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2023-05-31 00:30:38 / 修改时间：00:51:13" itemprop="dateCreated datePublished" datetime="2023-05-31T00:30:38+08:00">2023-05-31</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C/" itemprop="url" rel="index"><span itemprop="name">/C</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="哈希表"><a href="#哈希表" class="headerlink" title="哈希表"></a>哈希表</h2><h3 id="哈希表的概念"><a href="#哈希表的概念" class="headerlink" title="哈希表的概念"></a>哈希表的概念</h3><p>散列表也叫哈希表（Hash table），是根据关键字（key）而直接访问在内存存储位置的数据结构。</p>
+<p>在很多高级语言中都有哈希表的身影，比如在Python中，有一种数据结构叫做<code>dict</code>，中文翻译是字典，应该是基于哈希表实现的。下面以生活中查电话号码作为一个通俗的例子，讲解什么是哈希表。</p>
+<h3 id="一个例子理解哈希表"><a href="#一个例子理解哈希表" class="headerlink" title="一个例子理解哈希表"></a>一个例子理解哈希表</h3><p>可以把哈希表想象成一本按照人名首字母顺序排列电话簿，当我们要查找张三的电话号码时，可以轻易得知<code>张三</code>的首字母是<strong>Z</strong>。理想情况下，张三可能在电话簿Z开头的第一个，不理想的情况下，可能要往后再找几个人。</p>
+<p>显然，根据姓名首字母查找电话，要比挨个查找快很多，这就是哈希表的特点，快。</p>
+<p>人名首字母顺序排列电话簿：</p>
+<img src="/2023/05/31/%E5%93%88%E5%B8%8C%E8%A1%A8%E5%AE%9E%E7%8E%B0%E7%AE%80%E5%8D%95%E5%AD%97%E5%85%B8/hash_table.png" class="" title="hash_table">
+
+<p>与上面例子所对应的哈希表相关名词:</p>
+<ol>
+<li>哈希表：电话簿</li>
+<li>关键字(key)：姓名，如张三</li>
+<li>哈希函数(F)：计算姓名的首字母的方法，参数是姓名，返回是对应的首字母</li>
+<li>哈希地址：哈希函数的返回值，例子中，可以将A-Z理解为哈希地址</li>
+</ol>
+<h3 id="什么是冲突"><a href="#什么是冲突" class="headerlink" title="什么是冲突"></a>什么是冲突</h3><p>对于不同关键词，经过哈希函数的计算，可能得到同一哈希地址。比如，尽管奔波儿灞(key1)和灞波儿奔(key2)是不同的名字（<code>key1≠key2</code>）但经过<strong>哈希函数</strong>计算得到的是同一结果(<code>F(key1)=F(key2)=B</code>)，他们名字的首字母都是<strong>B</strong>。这种情况就叫做冲突。</p>
+<h3 id="解决冲突的方法"><a href="#解决冲突的方法" class="headerlink" title="解决冲突的方法"></a>解决冲突的方法</h3><p>解决冲突的方法有很多种，比如开放地址法和<strong>链地址法</strong>，可以根据具体使用场景来选择。一般来说，在实际项目和开发中采用链地址法比较多。</p>
+<p>链地址法的<strong>基本思路</strong>是，把相同哈希地址的关键字放在同一个链表中。</p>
+<p>采用链地址法解决冲突的哈希表，可以理解为数组和链表的组合。在上图中，存放首字母的是一个长度为26的数组，而数组的每一个元素可以看作是一个单链表，链表的数据域存放着姓名，指针域指向下一个存放相同首字母的姓名的节点。</p>
+<h2 id="字典的设计"><a href="#字典的设计" class="headerlink" title="字典的设计"></a>字典的设计</h2><p>上面我们对哈希表有了一个大概的了解，接下来设计并实现一个字典(<strong>dict</strong>)，在这个字典中，可以存放键值对，也可以根据键(key)获取对应的值(val)。</p>
+<ol>
+<li><strong>基本思想</strong>：采用链地址法，用定长数组(<strong>Array</strong>) + 单链表的方式表示字典，假定数组长度为<strong>SIZE</strong>，初始化状态的哈希表是一个元素全为0的数组。</li>
+<li><strong>存键值对</strong>：给定一个键值对(key1, val1)，通过哈希函数F计算得到哈希值(<code>hash_code</code>)，也即<strong>hash_code1 &#x3D; F(key1)<strong>。然后，通过</strong>hash_code1 % SIZE</strong>得到地址(由于是在数组中的位置，这里用Array[index]表示)，取模操作是为了确保该地址在数组地址的范围内。接着，新建一个单链表节点（<strong>节点1</strong>），指针域<code>next</code>为<code>NULL</code>，数据域存放key1和val1。最后，在Array[index]中存放指向节点1的指针。</li>
+<li><strong>发生冲突</strong>：给定一个键值对(key2, val2)，key2≠key1，如果通过哈希函数计算，hash_code2 &#x3D; hash_code1，那么将得到同一个地址Array[index]，此时发生冲突，因为数组此位置中已经存放了指向节点1的指针。</li>
+<li><strong>解决冲突</strong>: 新建一个单链表节点（节点2），数据域保存key2和val2，指针域<code>next</code>为NULL。让节点1的<code>next</code>指针指向节点2即可解决冲突，这就是链地址法，也叫拉链法，后面的冲突，继续使用此方法解决即可。</li>
+<li><strong>更新操作</strong>：在前面我们插入了键值对(key1, val1), 如果在此基础上又需要插入新的键值对(key1, val0),其中val0≠val1，就需要进行更新操作。有两种方法，第一种是直接将此键值的节点作为数组对应位置的第一个节点，第二种是在对应数组位置找到key&#x3D;key1的节点，然后更新其val指针。</li>
+<li><strong>查字典</strong>：给定一个key，查val。首先要计算出地址Array[index] &#x3D; F(key) % SIZE，如果有数据，此地址会存放一个指向单链表节点的指针，接着对比该指针指向的节点的数据域key是否与要查找的key相等。理想情况下是相等的，但由于冲突的存在，可能需要沿着节点的<code>next</code>指针往下找，也因此，哈希算法的时间复杂度并没有O(1)。找到数据后，返回即可。如果没数据，Array[index]&#x3D;0，返回NULL。</li>
+</ol>
+<h2 id="字典的表示"><a href="#字典的表示" class="headerlink" title="字典的表示"></a>字典的表示</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 字典类型 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DICT_TYPE_INT 0</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DICT_TYPE_STR 1</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dict_entry</span> </span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">dict_entry</span> *<span class="title">next</span>;</span></span><br><span class="line">    <span class="type">void</span> *key;</span><br><span class="line">    <span class="type">void</span> *val;</span><br><span class="line">&#125;dict_entry;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dict</span> </span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="comment">/* 哈希函数 */</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="title function_">int</span> <span class="params">(*hash)</span><span class="params">(<span class="type">void</span> *key)</span>;</span><br><span class="line">    <span class="comment">/* table数组用于存放dict_entry指针 */</span></span><br><span class="line">    dict_entry **table;</span><br><span class="line">    <span class="comment">/* table数组的长度 */</span></span><br><span class="line">    <span class="type">int</span> size;</span><br><span class="line">    <span class="comment">/* 掩码（size-1） */</span></span><br><span class="line">    <span class="type">int</span> sizemask;</span><br><span class="line">&#125;dict;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>首先看<code>dict_entry</code>结构体，它有三个成员，分别用来表示后继节点<code>next</code>指针和键与值，用以表示单链表的节点。</p>
+<p>接着是<code>dict</code>结构体，用来表示字典本身。</p>
+<ol>
+<li><p><strong>hash</strong>：对于不同类型的键，比如整型或字符数组（字符串），需要用不同的hash函数来处理，该成员是指针函数，指向该字典的hash函数。</p>
+</li>
+<li><p><strong>table</strong>：注意，该成员table是一个数组，用来存放<code>dict_entry</code>类型的指针。可以用dict_entry* table[size]来辅助理解。</p>
+</li>
+<li><p><strong>size</strong>：table数组的长度。</p>
+</li>
+<li><p><strong>sizemask</strong>：掩码，用于通过与运算来计算数组索引。通常sizemask &#x3D; size-1， 给定一个数x, x % size 等价于 x &amp; sizemask。与运算可能会比模运算更快，所以选择前者。</p>
+<p> 字典的结构：</p>
+</li>
+</ol>
+<img src="/2023/05/31/%E5%93%88%E5%B8%8C%E8%A1%A8%E5%AE%9E%E7%8E%B0%E7%AE%80%E5%8D%95%E5%AD%97%E5%85%B8/dict_add.png" class="" title="dict_add">
+
+
+
+<h2 id="函数清单"><a href="#函数清单" class="headerlink" title="函数清单"></a>函数清单</h2><p>下面是用于操作队列的函数名及其作用与复杂度</p>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>作用</th>
+<th>算法复杂度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>hash_integer</td>
+<td>计算整型key的hash值</td>
+<td>O(1)</td>
+</tr>
+<tr>
+<td>hash_33</td>
+<td>计算字符型key的hash值</td>
+<td>O(N)</td>
+</tr>
+<tr>
+<td>dict_create</td>
+<td>创建新字典</td>
+<td>O(1)</td>
+</tr>
+<tr>
+<td>dict_create_entry</td>
+<td>创建一个dict_entry</td>
+<td>O(1)</td>
+</tr>
+<tr>
+<td>dict_put_entry</td>
+<td>字典插入一个entry</td>
+<td>O(1)</td>
+</tr>
+<tr>
+<td>dict_get_value</td>
+<td>获取key对应的val</td>
+<td>最佳O(1),最坏O(N)</td>
+</tr>
+<tr>
+<td>dict_empty</td>
+<td>清除字典所有entry</td>
+<td>O(N2)</td>
+</tr>
+<tr>
+<td>dict_release</td>
+<td>释放整个字典</td>
+<td>O(N2)</td>
+</tr>
+</tbody></table>
+<h2 id="哈希函数的选择"><a href="#哈希函数的选择" class="headerlink" title="哈希函数的选择"></a>哈希函数的选择</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 哈希函数(适用整数) */</span></span><br><span class="line"><span class="type">static</span> <span class="type">unsigned</span> <span class="type">int</span> <span class="title function_">hash_integer</span><span class="params">(<span class="type">void</span> *key)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">return</span> (*(<span class="type">int</span> *)key * <span class="number">2654435769</span>) &gt;&gt; <span class="number">28</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 哈希函数 TIME33 算法 (适用字符串)*/</span></span><br><span class="line"><span class="type">static</span> <span class="type">unsigned</span> <span class="type">int</span> <span class="title function_">hash_33</span><span class="params">(<span class="type">void</span> *key)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">int</span> hash = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">while</span> (*(<span class="type">char</span> *)key != <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">/* 左移5位相当于*32，再+hash则相当于*33; */</span></span><br><span class="line">        hash = (hash &lt;&lt; <span class="number">5</span>) + hash + *(<span class="type">char</span> *)key++;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> hash;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>哈希函数是一种映射关系，构造哈希函数是一个数学问题，方法也很多，总的来说，要尽量减少冲突，地址尽量分布的均匀。</p>
+<p>这里我们选择一个简单的用于计算整数哈希值的函数，以及用于计算字符串哈希的TIME33算法。</p>
+<h2 id="哈希表的创建"><a href="#哈希表的创建" class="headerlink" title="哈希表的创建"></a>哈希表的创建</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 创建一个dict */</span></span><br><span class="line">dict *<span class="title function_">dict_create</span><span class="params">(<span class="type">int</span> type)</span></span><br><span class="line">&#123;</span><br><span class="line">    dict *dict = (<span class="keyword">struct</span> dict *)<span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">struct</span> dict));</span><br><span class="line">    <span class="keyword">if</span>(dict == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">    <span class="keyword">if</span>(type == DICT_TYPE_INT)</span><br><span class="line">        dict-&gt;hash = &amp;hash_integer;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        dict-&gt;hash = &amp;hash_33;</span><br><span class="line">    dict-&gt;size = <span class="number">1024</span>;</span><br><span class="line">    dict-&gt;sizemask = dict-&gt;size - <span class="number">1</span>;</span><br><span class="line">    <span class="comment">/* 为数组申请内存 */</span></span><br><span class="line">    dict-&gt;table = (dict_entry **)<span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(dict_entry *) *(dict-&gt;size));</span><br><span class="line">    <span class="keyword">if</span> (dict-&gt;table == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">    <span class="comment">/* 数组元素全部置零 */</span></span><br><span class="line">    <span class="built_in">memset</span>(dict-&gt;table, <span class="number">0</span>, <span class="keyword">sizeof</span>(dict_entry *) * (dict-&gt;size));</span><br><span class="line">    <span class="keyword">return</span> dict;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>函数接受一个参数<code>type</code>，用以下面判断字典的类型，从而确定对应的hash函数。然后是设置字典的大小，并为<code>table</code>数组申请内存，然后table所有元素置0，代表数组该位置为空。最后返回该新建的字典。</p>
+<h2 id="创建dict-entry"><a href="#创建dict-entry" class="headerlink" title="创建dict_entry"></a>创建dict_entry</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 创建一个dict_entry */</span></span><br><span class="line">dict_entry * <span class="title function_">dict_create_entry</span><span class="params">(<span class="type">void</span> *key, <span class="type">void</span> *val)</span></span><br><span class="line">&#123;</span><br><span class="line">    dict_entry * entry = (dict_entry *)<span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(dict_entry));</span><br><span class="line">    <span class="keyword">if</span>(entry == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">    entry-&gt;key = key;</span><br><span class="line">    entry-&gt;val = val;</span><br><span class="line">    entry-&gt;next = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="keyword">return</span> entry;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>创建一个<code>dict_entry</code>,也即是单链表的节点。这里接受俩void类型指针为参数，使得字典可以保存各类数据。</p>
+<h2 id="字典插入键值对"><a href="#字典插入键值对" class="headerlink" title="字典插入键值对"></a>字典插入键值对</h2><p>第一种方法：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 字典插入一个键值对 */</span></span><br><span class="line">dict *<span class="title function_">dict_put_head_entry</span><span class="params">(dict *dict, <span class="type">void</span> *key, <span class="type">void</span> *val)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">int</span> hash = dict-&gt;hash(key);</span><br><span class="line">    <span class="type">int</span> pos = hash &amp; dict-&gt;sizemask;</span><br><span class="line"></span><br><span class="line">    dict_entry *entry;</span><br><span class="line">    entry = dict_create_entry(key, val);</span><br><span class="line"></span><br><span class="line">    entry-&gt;next =  dict-&gt;table[pos];</span><br><span class="line">    dict-&gt;table[pos] = entry;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> dict;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这种方法简单有效，无论是新增、冲突或者更新操作，都以要插入的键值对生成的新结点作为对应数组位置的第一个节点。</p>
+<p>新增和冲突，本质都是链表插入，使用此方法时，更新并非实质更新。</p>
+<p>由于新结点作为对应数组位置的第一个节点，这就导致旧数据（相同key的节点）排列在新结点之后，而查询时，是从数组对应位置链表的第一个节点开始查找，所以总是先查找到新的键值对。</p>
+<p><strong>优缺点：</strong></p>
+<ul>
+<li>优点，操作简单、优雅，插入效率高，无需遍历链表和计算每个节点key的hash值。</li>
+<li>缺点，旧节点还存留在该链表中，所以多占了点内存。</li>
+</ul>
+<p>值得一提的是，<strong>Redis</strong>的dcit在插入键值对时，就使用了该方法。</p>
+<p>第二种方法：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 字典插入一个键值对 */</span></span><br><span class="line">dict *<span class="title function_">dict_put_entry</span><span class="params">(dict *dict, <span class="type">void</span> *key, <span class="type">void</span> *val)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">int</span> hash = dict-&gt;hash(key);</span><br><span class="line">    <span class="type">int</span> pos = hash &amp; dict-&gt;sizemask;</span><br><span class="line">    dict_entry *entry, *current;</span><br><span class="line">    <span class="comment">/* 新增 */</span></span><br><span class="line">    <span class="keyword">if</span>(dict-&gt;table[pos]==<span class="number">0</span>)&#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;新增\\\\n&quot;</span>);</span><br><span class="line">        entry = dict_create_entry(key, val);</span><br><span class="line">        dict-&gt;table[pos] = entry;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        current = dict-&gt;table[pos];</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 首先判断第一个节点是否符合更新的情况 */</span></span><br><span class="line">        <span class="keyword">if</span>(dict-&gt;hash(current-&gt;key) == dict-&gt;hash(key)) &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;更新\\\\n&quot;</span>);</span><br><span class="line">            current-&gt;val = val;</span><br><span class="line">            <span class="keyword">return</span> dict;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 如果不符合，往下找，直到找到hash值相等的key的节点，则更新，</span></span><br><span class="line"><span class="comment">         * 或者直到next==NULL，此时新增在链表尾部。 */</span></span><br><span class="line">        <span class="keyword">while</span>(current-&gt;next != <span class="literal">NULL</span>) &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;往下找\\\\n&quot;</span>);</span><br><span class="line">            <span class="keyword">if</span>(dict-&gt;hash(current-&gt;next-&gt;key) == dict-&gt;hash(key)) &#123;</span><br><span class="line">                <span class="built_in">printf</span>(<span class="string">&quot;更新\n&quot;</span>);</span><br><span class="line">                current-&gt;next-&gt;val = val;</span><br><span class="line">                <span class="keyword">return</span> dict;</span><br><span class="line">            &#125;;</span><br><span class="line">            current = current-&gt;next;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;尾部插入\n&quot;</span>);</span><br><span class="line">        entry = dict_create_entry(key, val);</span><br><span class="line">        current-&gt;next = entry;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> dict;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个方法可以参考上文提到的<strong>字典的设计</strong>，优点是利用内存更加少一点，缺点就是不够优雅，增加了算法复杂度。</p>
+<p>在调试和测试时，可以将dict-&gt;size设置为1，进而观察新增、更新、冲突等情况。</p>
+<h2 id="查字典"><a href="#查字典" class="headerlink" title="查字典"></a>查字典</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* dict获取值 */</span></span><br><span class="line"><span class="type">void</span> * <span class="title function_">dict_get_value</span><span class="params">(dict *dict, <span class="type">void</span> *key)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">int</span> hash = dict-&gt;hash(key);</span><br><span class="line">    <span class="type">int</span> pos = hash &amp; dict-&gt;sizemask;</span><br><span class="line">    <span class="keyword">if</span>(dict-&gt;table[pos]==<span class="number">0</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">    dict_entry *current = dict-&gt;table[pos];</span><br><span class="line">    <span class="keyword">while</span> (current)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span>(dict-&gt;hash(current-&gt;key) == dict-&gt;hash(key))</span><br><span class="line">            <span class="keyword">return</span> current-&gt;val;</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">            current = current-&gt;next;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>查字典就是给定一个key，查对应的val。</p>
+<p>参考上文提到的<strong>字典的设计</strong>。</p>
+<h2 id="字典的清除与释放"><a href="#字典的清除与释放" class="headerlink" title="字典的清除与释放"></a>字典的清除与释放</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 清除dict所有entry，而不清除dict本身 */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">dict_empty</span><span class="params">(dict *dict)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> i;</span><br><span class="line">    <span class="keyword">for</span>(i=<span class="number">0</span>;i&lt;dict-&gt;size;i++)&#123;</span><br><span class="line">        <span class="keyword">if</span>(dict-&gt;table[i] != <span class="number">0</span>)&#123;</span><br><span class="line">            dict_entry * current, *next;</span><br><span class="line">            current = dict-&gt;table[i];</span><br><span class="line">            <span class="keyword">while</span> (current)</span><br><span class="line">            &#123;</span><br><span class="line">                next = current-&gt;next;</span><br><span class="line">                <span class="built_in">free</span>(current);</span><br><span class="line">                current = next;</span><br><span class="line">            &#125;</span><br><span class="line">            dict-&gt;table[i] = <span class="number">0</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 释放dict */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">dict_release</span><span class="params">(dict *dict)</span></span><br><span class="line">&#123;</span><br><span class="line">    dict_empty(dict);</span><br><span class="line">    <span class="built_in">free</span>(dict-&gt;table);</span><br><span class="line">    <span class="built_in">free</span>(dict);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在清除dict所有entry，而不清除dict本身时，只需要遍历table数组，发现不为0的元素时再遍历清除对应的链表即可。</p>
+<p>释放dict的操作，只需要释放所有entry后，再释放dict本身即可。</p>
+<h2 id="在main函数中测试"><a href="#在main函数中测试" class="headerlink" title="在main函数中测试"></a>在main函数中测试</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">main</span> <span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">	dict *dict = dict_create (DICT_TYPE_STR);</span><br><span class="line"></span><br><span class="line">	<span class="type">char</span> str_name[] = <span class="string">&quot;name&quot;</span>;</span><br><span class="line">	<span class="type">char</span> str_person1[] = <span class="string">&quot;codecat&quot;</span>;</span><br><span class="line">	<span class="type">char</span> str_person2[] = <span class="string">&quot;codepig&quot;</span>;</span><br><span class="line">	<span class="type">char</span> str_age[] = <span class="string">&quot;age&quot;</span>;</span><br><span class="line">	<span class="type">int</span> age = <span class="number">26</span>;</span><br><span class="line"></span><br><span class="line">	dict_put_entry (dict, &amp;str_person1, &amp;str_person1);</span><br><span class="line">	<span class="built_in">puts</span> (dict_get_value (dict, &amp;str_person1));</span><br><span class="line"></span><br><span class="line">	dict_put_entry (dict, &amp;str_name, &amp;str_person1);</span><br><span class="line">	<span class="built_in">puts</span> (dict_get_value (dict, &amp;str_name));</span><br><span class="line"></span><br><span class="line">	dict_put_entry (dict, &amp;str_name, &amp;str_person2);</span><br><span class="line">	<span class="built_in">puts</span> (dict_get_value (dict, &amp;str_name));</span><br><span class="line"></span><br><span class="line">	dict_put_entry (dict, &amp;str_age, &amp;age);</span><br><span class="line">	<span class="built_in">printf</span> (<span class="string">&quot;age: %d\\n&quot;</span>, *( <span class="type">int</span> * ) dict_get_value (dict, &amp;str_age));</span><br><span class="line"></span><br><span class="line">	dict_empty (dict);</span><br><span class="line">	dict_release (dict);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>测试时，插入键值对我使用的是第二种方法，此外我还将dict中的size设置为1，这样table中就一个位置，方便观察插入、更新、冲突时，链表的变化。</p>
+
+    </div>
+
+    
+    
+    
+ 
+   <div>
+     <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:24px;">-------------���Ľ���<i class="fa fa-paw"></i>��л�����Ķ�-------------</div>
+    
+</div>
+   </div>
+ 
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>codecat
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://example.com/2023/05/31/%E5%93%88%E5%B8%8C%E8%A1%A8%E5%AE%9E%E7%8E%B0%E7%AE%80%E5%8D%95%E5%AD%97%E5%85%B8/" title="哈希表实现简单字典">http://example.com/2023/05/31/哈希表实现简单字典/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%EF%BC%8Chash-dict/" rel="tag"># 数据结构，hash,dict</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2023/05/10/C-%E6%96%87%E4%BB%B6%E6%B5%81/" rel="prev" title="C++文件流">
+      <i class="fa fa-chevron-left"></i> C++文件流
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%93%88%E5%B8%8C%E8%A1%A8"><span class="nav-number">1.</span> <span class="nav-text">哈希表</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%93%88%E5%B8%8C%E8%A1%A8%E7%9A%84%E6%A6%82%E5%BF%B5"><span class="nav-number">1.1.</span> <span class="nav-text">哈希表的概念</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%80%E4%B8%AA%E4%BE%8B%E5%AD%90%E7%90%86%E8%A7%A3%E5%93%88%E5%B8%8C%E8%A1%A8"><span class="nav-number">1.2.</span> <span class="nav-text">一个例子理解哈希表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E5%86%B2%E7%AA%81"><span class="nav-number">1.3.</span> <span class="nav-text">什么是冲突</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E5%86%B2%E7%AA%81%E7%9A%84%E6%96%B9%E6%B3%95"><span class="nav-number">1.4.</span> <span class="nav-text">解决冲突的方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%97%E5%85%B8%E7%9A%84%E8%AE%BE%E8%AE%A1"><span class="nav-number">2.</span> <span class="nav-text">字典的设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%97%E5%85%B8%E7%9A%84%E8%A1%A8%E7%A4%BA"><span class="nav-number">3.</span> <span class="nav-text">字典的表示</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E6%B8%85%E5%8D%95"><span class="nav-number">4.</span> <span class="nav-text">函数清单</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%93%88%E5%B8%8C%E5%87%BD%E6%95%B0%E7%9A%84%E9%80%89%E6%8B%A9"><span class="nav-number">5.</span> <span class="nav-text">哈希函数的选择</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%93%88%E5%B8%8C%E8%A1%A8%E7%9A%84%E5%88%9B%E5%BB%BA"><span class="nav-number">6.</span> <span class="nav-text">哈希表的创建</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9B%E5%BB%BAdict-entry"><span class="nav-number">7.</span> <span class="nav-text">创建dict_entry</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%97%E5%85%B8%E6%8F%92%E5%85%A5%E9%94%AE%E5%80%BC%E5%AF%B9"><span class="nav-number">8.</span> <span class="nav-text">字典插入键值对</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9F%A5%E5%AD%97%E5%85%B8"><span class="nav-number">9.</span> <span class="nav-text">查字典</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%97%E5%85%B8%E7%9A%84%E6%B8%85%E9%99%A4%E4%B8%8E%E9%87%8A%E6%94%BE"><span class="nav-number">10.</span> <span class="nav-text">字典的清除与释放</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%A8main%E5%87%BD%E6%95%B0%E4%B8%AD%E6%B5%8B%E8%AF%95"><span class="nav-number">11.</span> <span class="nav-text">在main函数中测试</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="codecat"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">codecat</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">5</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/BinXuStar" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;BinXuStar" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:xu_bin@tju.edu.cn" title="E-Mail → mailto:xu_bin@tju.edu.cn" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title"><i class="fa fa-link fa-fw"></i>
+      Links
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="/runoob.com" title="runoob.com">Runoob</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://fishc.com.cn/" title="https:&#x2F;&#x2F;fishc.com.cn" rel="noopener" target="_blank">FishC</a>
+        </li>
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2022 – 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">codecat</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+
+    <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+    <span id="busuanzi_container_site_pv">总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+    <span class="post-meta-divider">|</span>
+    <span id="busuanzi_container_site_uv">总访客数<span id="busuanzi_value_site_uv"></span>人</span>
+    <span class="post-meta-divider">|</span>
+<!-- 不蒜子计数初始值纠正 -->
+<script>
+$(document).ready(function() {
+
+    var int = setInterval(fixCount, 50);  // 50ms周期检测函数
+    var countOffset = 20000;  // 初始化首次数据
+
+    function fixCount() {            
+       if (document.getElementById("busuanzi_container_site_pv").style.display != "none")
+        {
+            $("#busuanzi_value_site_pv").html(parseInt($("#busuanzi_value_site_pv").html()) + countOffset); 
+            clearInterval(int);
+        }                  
+        if ($("#busuanzi_container_site_pv").css("display") != "none")
+        {
+            $("#busuanzi_value_site_uv").html(parseInt($("#busuanzi_value_site_uv").html()) + countOffset); // 加上初始数据 
+            clearInterval(int); // 停止检测
+        }  
+    }
+       	
+});
+</script> 
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>
